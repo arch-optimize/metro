@@ -52,7 +52,7 @@ pip install -r requirements.txt
 ## Usage
 Run the application:
 ```bash
-python app.py ()
+python app.py
 ```
 Open your web browser and go to:
 http://127.0.0.1:8050/
