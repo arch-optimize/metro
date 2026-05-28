@@ -62,9 +62,6 @@ def create_plot_arrays(
 	special_event_duration=5,
 	illegal_boarding_rate=0.1
 ):
-	#periodic_special_days=["25/03","08/03",...]
-	#curr_date=datetime.strptime("01/01/2024", "%d/%m/%Y")
-	#end_date=datetime.strptime("1/11/2024", "%d/%m/%Y")
 	init_year=int(curr_date.strftime("%Y"))
 	fin_year=int(end_date.strftime("%Y"))
 	cy=init_year
@@ -81,9 +78,6 @@ def create_plot_arrays(
 		vp.append(holidays[3])
 		kd.append(holidays[4])
 		cy+=1
-	#non_periodic_special_dates=["05/03/2023","08/03/2023","16/03/2023","08/02/2024","20/02/2024","22/02/2024","08/03/2024","07/02/2025","14/02/2025"]
-	#special_hours=[11,12,11,11,12,12,8,12,11,12,11]
-	#excluded_dates=["20/11/2024","28/02/2025","09/04/2025"]
 	days=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
 	curr_month=curr_date.strftime("%m")
 	curr_month_data_per_weekday=[[],[],[],[],[],[],[]]
@@ -134,13 +128,13 @@ def create_plot_arrays(
 				mm_tmp=np.ones(base_mask.shape)
 				mm_tmp[base_mask==0]=0
 				month_avg_masks.append(mm_tmp)
-				flnm=save_folder+"/"+year+"/"+curr_month+"/"+days[i]+"/data_avg.npy"
+				flnm=save_folder+"/"+str(year)+"/"+curr_month+"/"+days[i]+"/data_avg.npy"
 				os.makedirs(os.path.dirname(flnm), exist_ok=True)
 				np.save(flnm,month_weekday_avg)
-				flnm=save_folder+"/"+year+"/"+curr_month+"/"+days[i]+"/data_min.npy"
+				flnm=save_folder+"/"+str(year)+"/"+curr_month+"/"+days[i]+"/data_min.npy"
 				os.makedirs(os.path.dirname(flnm), exist_ok=True)
 				np.save(flnm,month_weekday_min)
-				flnm=save_folder+"/"+year+"/"+curr_month+"/"+days[i]+"/data_max.npy"
+				flnm=save_folder+"/"+str(year)+"/"+curr_month+"/"+days[i]+"/data_max.npy"
 				os.makedirs(os.path.dirname(flnm), exist_ok=True)
 				np.save(flnm,month_weekday_max)
 			if len(non_periodic_day_idx)>0:
@@ -159,13 +153,18 @@ def create_plot_arrays(
 		if br==1:
 			break
 		print("Getting new date...",curr_date)
-		filename1=load_folder+"/origins_dests_"+curr_date.strftime("%d_%m_%Y")+".npy"
-		filename2=load_folder+"/info_"+curr_date.strftime("%d_%m_%Y")+".npz"
+		try:
+			filename1=load_folder+"/origins_dests_"+curr_date.strftime("%d_%m_%Y")+".npy"
+			filename2=load_folder+"/info_"+curr_date.strftime("%d_%m_%Y")+".npz"
+			today_data = np.load(filename1, allow_pickle=True)
+			info = np.load(filename2, allow_pickle=True)
+		except:
+			print("Failed to get new date")
+			curr_date+=timedelta(days=1)
+			continue
 		day=curr_date.strftime("%d")
 		day_name = curr_date.strftime("%A")
 		day_index=days.index(day_name)
-		today_data = np.load(filename1, allow_pickle=True)
-		info = np.load(filename2, allow_pickle=True)
 		print("processing")
 		today_invalid_date = info["today_invalid_date"]
 		today_invalid_boarding_code = info["today_invalid_boarding_code"]
@@ -309,6 +308,31 @@ def create_plot_arrays(
 		all_max.append(all_weekday_max)
 		all_weekday_avg=base_data/base_mask
 		all_avg.append(all_weekday_avg)
+	for i in range(len(all_min)):
+		all_min[i][np.isnan(all_min[i])]=0
+		all_min[i][np.isinf(all_min[i])]=0
+	for i in range(len(all_max)):
+		all_max[i][np.isnan(all_max[i])]=0
+		all_max[i][np.isinf(all_max[i])]=0
+	for i in range(len(all_avg)):
+		all_avg[i][np.isnan(all_avg[i])]=0
+		all_avg[i][np.isinf(all_avg[i])]=0
+	for i in range(len(avg_fw)):
+		avg_fw[i][np.isnan(avg_fw[i])]=0
+		avg_fw[i][np.isinf(avg_fw[i])]=0
+	avg_event_dev[np.isnan(avg_event_dev)]=0
+	avg_event_dev[np.isinf(avg_event_dev)]=0
+	for i in range(len(avg_lw)):
+		avg_lw[i][np.isnan(avg_lw[i])]=0
+		avg_lw[i][np.isinf(avg_lw[i])]=0
+	for i in range(len(avg_mv)):
+		avg_mv[i][np.isnan(avg_mv[i])]=0
+		avg_mv[i][np.isinf(avg_mv[i])]=0
+	for i in range(len(avg_vp)):
+		avg_vp[i][np.isnan(avg_vp[i])]=0
+		avg_vp[i][np.isinf(avg_vp[i])]=0
+	avg_kd[np.isnan(avg_kd)]=0
+	avg_kd[np.isinf(avg_kd)]=0
 	return (all_min, all_max, all_avg, all_avg_masks, avg_event_dev, avg_fw, avg_lw, avg_mv, avg_vp, avg_kd)
 
 def select_graph_to_display(
@@ -364,21 +388,21 @@ def select_graph_to_display(
 		print(save_folder+"/"+year+"/"+month+"/"+days[day]+"/data_avg.npy")
 		data=np.load(save_folder+"/"+year+"/"+month+"/"+days[day]+"/data_avg.npy")
 		print("loaded data")
-		r_tmp=data[day].reshape((24*30,70,70))
+		r_tmp=data.reshape((24*30,70,70))
 		if station==-1:
 			result=np.sum(r_tmp,axis=(1,2))
 		else:
 			result=np.sum(r_tmp,axis=1)[:,station]
 	elif graph_type=="month_day_min":
 		data=np.load(save_folder+"/"+year+"/"+month+"/"+days[day]+"/data_min.npy")
-		r_tmp=data[day].reshape((24*30,70,70))
+		r_tmp=data.reshape((24*30,70,70))
 		if station==-1:
 			result=np.sum(r_tmp,axis=(1,2))
 		else:
 			result=np.sum(r_tmp,axis=1)[:,station]
 	elif graph_type=="month_day_max":
 		data=np.load(save_folder+"/"+year+"/"+month+"/"+days[day]+"/data_max.npy")
-		r_tmp=data[day].reshape((24*30,70,70))
+		r_tmp=data.reshape((24*30,70,70))
 		if station==-1:
 			result=np.sum(r_tmp,axis=(1,2))
 		else:
